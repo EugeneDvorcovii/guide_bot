@@ -73,47 +73,41 @@ class QuizClient:
             if not self.data_client.user_quiz_exist(user_id=msg.from_user.id, quiz_id=quiz_id):
                 data["quiz_id"] = quiz_id
                 data["quiz_title"] = msg.text
-                quiz_ask = self.data_client.get_quiz_ask(quiz_id=data["quiz_id"], ask_id=list())
-                if quiz_ask[0]:
-                    quiz_ask = quiz_ask[1]
-                    ask = quiz_ask["ask"]
-                    answers = [quiz_ask["t_q"], quiz_ask["f_q1"], quiz_ask["f_q2"], quiz_ask["f_q3"]]
-                    answers = self.delete_space(answers)
-                    shuffle(answers)
-                    image_id = quiz_ask["image_id"]
-                    data["true_q"] = quiz_ask["t_q"]
-                    data["ask_id"] = [quiz_ask["id"]]
-                    data["user_id"] = self.data_client.get_user_id(msg.from_user.id)
-                    await msg.answer_photo(image_id, ask,
-                                           reply_markup=create_keyboards(answers, cancel_btn=True,
-                                                                         user_lang=user_lang))
-                    await FSMWorkProgram.run_quiz.set()
-                else:
-                    await msg.answer(languages[user_lang]["run_quiz_all_ask"],
-                                     reply_markup=create_keyboards(list(), cancel_btn=True,
-                                                                   user_lang=user_lang))
+                quiz_ask = self.data_client.get_random_ask(quiz_id=data["quiz_id"], ask_id_ready=list())
+                ask = quiz_ask["ask"]
+                answers = [quiz_ask["t_q"], quiz_ask["f_q1"], quiz_ask["f_q2"], quiz_ask["f_q3"]]
+                answers = self.delete_space(answers)
+                shuffle(answers)
+                image_id = quiz_ask["image_id"]
+                data["true_q"] = quiz_ask["t_q"]
+                data["big_answer"] = quiz_ask["big_answer"]
+                data["ask_id"] = [quiz_ask["id"]]
+                data["user_id"] = self.data_client.get_user_id(msg.from_user.id)
+                await msg.answer_photo(image_id, ask,
+                                       reply_markup=create_keyboards(answers, cancel_btn=True,
+                                                                     user_lang=user_lang))
+                await FSMWorkProgram.run_quiz.set()
             else:
                 await msg.answer(languages[user_lang]["run_quiz_already_finished"])
 
     async def quiz(self, msg: types.Message, state: FSMContext):
-        def delete_space(elem_list: list):
-            new_elem_list = list()
-            for elem in elem_list:
-                if elem != "space":
-                    new_elem_list.append(elem)
-            return new_elem_list
         user_lang = self.data_client.get_user_lang(user_id=str(msg.from_user.id))
         async with state.proxy() as data:
             if data["true_q"] == msg.text:
-                await msg.answer(languages[user_lang]["true_answer"])
+                back_msg = languages[user_lang]["true_answer"]
+                if data["big_answer"] != "no":
+                    back_msg += f"\n\n{data['big_answer']}"
+                await msg.answer(back_msg)
                 score = 10
             else:
-                await msg.answer(languages[user_lang]["error_answer"] + f"{data['true_q']}.")
+                back_msg = languages[user_lang]["error_answer"] + f"{data['true_q']}."
+                if data["big_answer"] != "no":
+                    back_msg += f"\n\n{data['big_answer']}"
+                await msg.answer(back_msg)
                 score = 0
             self.data_client.set_score_user_quiz(user_id=data["user_id"], quiz_id=data["quiz_id"], score=score)
-            quiz_ask = self.data_client.get_quiz_ask(quiz_id=data["quiz_id"], ask_id=data["ask_id"])
-            if len(data["ask_id"]) <= 5:
-                quiz_ask = quiz_ask[1]
+            quiz_ask = self.data_client.get_random_ask(quiz_id=data["quiz_id"], ask_id_ready=data["ask_id"])
+            if len(data["ask_id"]) < 5:
                 ask = quiz_ask["ask"]
                 answers = [quiz_ask["t_q"], quiz_ask["f_q1"], quiz_ask["f_q2"], quiz_ask["f_q3"]]
                 answers = self.delete_space(answers)

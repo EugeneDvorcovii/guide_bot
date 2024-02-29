@@ -112,6 +112,9 @@ class UserClient:
         back_msg = "Проект: Виртуальный гид"
         await msg.reply(back_msg)
 
+    async def photo_id(self, msg: types.Message):
+        await msg.answer_photo(msg.text)
+
     def run_handler(self):
         dp.register_message_handler(self.start_work, commands=["start"], state="*")
         dp.register_message_handler(self.test_db, commands=["test_db"], state="*")
@@ -136,6 +139,9 @@ class UserClient:
                                     state=FSMWorkProgram.main_menu)
         dp.register_message_handler(self.get_audio_id,
                                     content_types=["audio"],
+                                    state=FSMWorkProgram.main_menu)
+        dp.register_message_handler(self.photo_id,
+                                    content_types=["text"],
                                     state=FSMWorkProgram.main_menu)
 
 

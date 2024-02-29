@@ -260,12 +260,13 @@ class DataClient:
                          f_q1: str,
                          f_q2: str,
                          f_q3: str,
-                         image_id: str = None) -> bool:
+                         image_id: str = None,
+                         big_answer: str = "no") -> bool:
         table = "quiz_ask"
         image_id = image_id if image_id else BASE_IMAGE_ID
-        request = f"INSERT INTO {self.DATABASE_NAME}.{table} (quiz_id, ask, t_q, f_q1, f_q2, f_q3, image_id, version) " \
-                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
-        record = [(quiz_id, quiz_ask, t_q, f_q1, f_q2, f_q3, image_id, db_version)]
+        request = f"INSERT INTO {self.DATABASE_NAME}.{table} (quiz_id, ask, t_q, f_q1, f_q2, f_q3, image_id, version, big_answer) " \
+                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"
+        record = [(quiz_id, quiz_ask, t_q, f_q1, f_q2, f_q3, image_id, db_version, big_answer)]
         return self.set_new_data(request=request, record=record)
 
     def set_new_user_quiz(self,
@@ -460,7 +461,7 @@ class DataClient:
             ask_id_list.append(elem["id"])
         return ask_id_list
 
-    def get_random_ask(self, quiz_id: int, ask_id_ready: list) -> dict:
+    def get_random_ask(self, quiz_id: int, ask_id_ready: list) -> [bool, dict]:
         table = "quiz_ask"
         ask_id_list = self.get_ask_id_list(quiz_id=quiz_id)
         random_ask_id = random.choice(ask_id_list)
