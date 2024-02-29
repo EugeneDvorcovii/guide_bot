@@ -117,7 +117,7 @@ class UserClient:
         dp.register_message_handler(self.test_db, commands=["test_db"], state="*")
         dp.register_message_handler(self.test_user_db, commands=["test_user_db"], state="*")
         dp.register_message_handler(self.test_user_quiz_db, commands=["test_user_quiz_db"], state="*")
-        dp.register_message_handler(self.test_func, commands=["test_func"], state="*")
+        # dp.register_message_handler(self.test_func, commands=["test_func"], state="*")
         dp.register_message_handler(self.go_to_main_menu,
                                     Text(equals=languages["to_all"]["cancel"], ignore_case=True),
                                     state="*")
