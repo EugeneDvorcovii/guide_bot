@@ -2,7 +2,9 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic as GD
 import pymysql
 import time
+import random
 from config import host, user, password, db_version, BASE_IMAGE_ID
+from languages.languages import languages
 
 
 class DataClient:
@@ -166,6 +168,7 @@ class DataClient:
         request = f"DROP TABLE {self.DATABASE_NAME}.{table_title}"
         with self.con.cursor() as cur:
             cur.execute(request)
+            self.con.commit()
         print("ok")
 
     def drop_all_tables(self) -> bool:
@@ -232,11 +235,12 @@ class DataClient:
 
     def set_new_quiz_theme(self,
                            title: str,
-                           description: str) -> bool:
+                           description: str,
+                           language: str) -> bool:
         table = "quiz_theme"
-        request = f"INSERT INTO {self.DATABASE_NAME}.{table} (title, description, version) " \
-                  "VALUES (%s, %s, %s);"
-        record = [(title, description, db_version)]
+        request = f"INSERT INTO {self.DATABASE_NAME}.{table} (title, description, version, language) " \
+                  "VALUES (%s, %s, %s, %s);"
+        record = [(title, description, db_version, language)]
         return self.set_new_data(request=request, record=record)
 
     def set_new_quiz(self,
@@ -282,6 +286,7 @@ class DataClient:
         try:
             with self.con.cursor() as cur:
                 cur.execute(request)
+                self.con.commit()
             return True
         except Exception:
             return False
@@ -339,7 +344,7 @@ class DataClient:
 
     def user_exist(self, user_id: str) -> bool:
         table = "user"
-        request = f"SELECT id FROM {self.DATABASE_NAME}.{table};"
+        request = f"SELECT id FROM {self.DATABASE_NAME}.{table} where user_id = '{user_id}';"
         return self.exist_elem(request=request)
 
     def set_new_admin(self, user_id: str) -> bool:
@@ -361,6 +366,13 @@ class DataClient:
         table = "fact"
         request = f"SELECT id FROM {self.DATABASE_NAME}.{table} " \
                   f"WHERE title = '{fact_title}' AND landmark_id = '{landmark_id}';"
+        return self.exist_elem(request=request)
+
+    def user_quiz_exist(self, user_id: str, quiz_id: int) -> bool:
+        user_id = self.get_user_id(user_id=user_id)
+        table = "user_quiz"
+        request = f"SELECT id FROM {self.DATABASE_NAME}.{table} " \
+                  f"WHERE user_id = '{user_id}' AND quiz_id = '{quiz_id}';"
         return self.exist_elem(request=request)
 
     def get_all_town_title(self) -> list:
@@ -386,9 +398,9 @@ class DataClient:
                   f"WHERE title = '{landmark_title}' AND town_id = '{town_id}';"
         return self.get_info(request)[0]["id"]
 
-    def get_quiz_theme_list(self) -> [bool, list]:
+    def get_quiz_theme_list(self, user_lang: str) -> [bool, list]:
         table = "quiz_theme"
-        request = f"SELECT title FROM {self.DATABASE_NAME}.{table};"
+        request = f"SELECT title FROM {self.DATABASE_NAME}.{table} WHERE language = '{user_lang}';"
         data = [elem["title"] for elem in self.get_info(request)]
         return [len(data) > 0, data]
 
@@ -423,21 +435,51 @@ class DataClient:
         request = f"SELECT * FROM {self.DATABASE_NAME}.{table} WHERE quiz_id = '{quiz_id}';"
         data = self.get_info(request)
         index_ask = len(ask_id)
-        print(f"len asks: {index_ask}")
+        # print(f"len asks: {index_ask}")
         return [True, data[index_ask]] if index_ask != len(data) else [False, dict()]
 
-    def get_statistics(self, user_id: int) -> str:
+    def get_statistics(self, user_id: int, user_lang: str) -> str:
         table = "user_quiz"
         total_score = 0
-        msg_back = f"Ваш счет за викторины:\n"
+        msg_back = f"{languages[user_lang]['stat_start']}\n"
         request = f"SELECT * FROM {self.DATABASE_NAME}.{table} WHERE user_id = '{user_id}';"
         for elem in self.get_info(request):
             quiz_title = self.get_quiz_title(elem["quiz_id"])
-            msg_back += f"В викторине '{quiz_title}' Вы набрали {elem['score']} баллов.\n"
+            msg_back += f"{languages[user_lang]['stat_1_step']}'{quiz_title}'" \
+                        f"{languages[user_lang]['stat_2_step']}{elem['score']}{languages[user_lang]['stat_3_step']}\n"
             total_score += elem['score']
-        msg_back += f"Всего Вы набрали: {total_score}."
+        msg_back += f"{languages[user_lang]['stat_total']}{total_score}."
         return msg_back
 
+    def get_ask_id_list(self, quiz_id: int) -> list:
+        table = "quiz_ask"
+        request = f"SELECT id FROM {self.DATABASE_NAME}.{table} WHERE quiz_id = '{quiz_id}';"
+        data = self.get_info(request)
+        ask_id_list = list()
+        for elem in data:
+            ask_id_list.append(elem["id"])
+        return ask_id_list
+
+    def get_random_ask(self, quiz_id: int, ask_id_ready: list) -> dict:
+        table = "quiz_ask"
+        ask_id_list = self.get_ask_id_list(quiz_id=quiz_id)
+        random_ask_id = random.choice(ask_id_list)
+        while random_ask_id in ask_id_ready:
+            random_ask_id = random.choice(ask_id_list)
+        request = f"SELECT * FROM {self.DATABASE_NAME}.{table} WHERE id = '{random_ask_id}';"
+        data = self.get_info(request)[0]
+        return data
+
+    def get_user_lang(self, user_id: str) -> str:
+        table = "user"
+        request = f"SELECT language FROM {self.DATABASE_NAME}.{table} WHERE user_id = '{user_id}';"
+        data = self.get_info(request=request)[0]["language"]
+        return data
+
+    def change_user_lang(self, user_id: str, new_lang: str) -> bool:
+        table = "user"
+        request = f"UPDATE {self.DATABASE_NAME}.{table} SET language='{new_lang}' WHERE user_id = '{user_id}';"
+        return self.execute_request(request=request)
 
 
     """

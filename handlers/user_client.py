@@ -5,6 +5,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 from initial import DataClient
+from initial import languages
 
 from keyboards import create_keyboards
 from config import FSMWorkProgram
@@ -12,16 +13,19 @@ from handlers import admin_client
 
 from handlers.user import QuizClient
 
+
 # category_id = data_client.get_one_from_one_if("place_category", "id", "title", "Club")
 
 
 class UserClient:
-    btn_main_menu_for_user = [  # "Виртуальный Гид",
-                              "Викторины",
-                              # "Достопримечательности",
-                              # "О проекте",
-                              # "Настройки"
-    ]
+
+    # btn_main_menu_for_user = [  # "Виртуальный Гид",
+    #                           "Викторины",
+    #                           "Изменить язык сервиса"
+    #                           # "Достопримечательности",
+    #                           # "О проекте",
+    #                           # "Настройки"
+    # ]
 
     def __init__(self, data_client: DataClient):
         self.data_client = data_client
@@ -40,8 +44,10 @@ class UserClient:
 
     async def go_to_main_menu(self, msg: types.Message):
         result = self.check_user_exist(msg=msg)
-        await msg.reply("Вы попали в главное меню.",
-                        reply_markup=create_keyboards(self.btn_main_menu_for_user))
+        user_lang = self.data_client.get_user_lang(user_id=str(msg.from_user.id))
+        back_msg = languages[user_lang]["main_menu"]
+        await msg.reply(back_msg,
+                        reply_markup=create_keyboards(languages[user_lang]["btn_main_menu_for_user"]))
         await FSMWorkProgram.main_menu.set()
 
     async def test_db(self, msg: types.Message):
@@ -73,10 +79,26 @@ class UserClient:
 
     async def start_work(self, msg: types.Message):
         result = self.check_user_exist(msg=msg)
-        await msg.reply("Привет!",
-                        reply_markup=create_keyboards(self.btn_main_menu_for_user))
+        user_lang = self.data_client.get_user_lang(user_id=str(msg.from_user.id))
+        back_msg = languages[user_lang]["menu_after_start"]
+        await msg.reply(back_msg,
+                        reply_markup=create_keyboards(languages[user_lang]["btn_main_menu_for_user"]))
         await FSMWorkProgram.main_menu.set()
         # print(self.data_client.get_all_reserves())
+
+    async def change_user_lang(self, msg: types.Message):
+        result = self.check_user_exist(msg=msg)
+        user_lang = self.data_client.get_user_lang(user_id=str(msg.from_user.id))
+        if user_lang == "ru":
+            new_lang = "en"
+        else:
+            new_lang = "ru"
+        result_2 = self.data_client.change_user_lang(user_id=str(msg.from_user.id), new_lang=new_lang)
+        if result_2:
+            await msg.answer(languages[new_lang]["change_lang_true"],
+                             reply_markup=create_keyboards(languages[new_lang]["btn_main_menu_for_user"]))
+        else:
+            await msg.answer("error")
 
     async def set_new_admin(self, msg: types.Message):
         result = self.data_client.set_new_admin(str(msg.from_user.id))
@@ -97,7 +119,10 @@ class UserClient:
         dp.register_message_handler(self.test_user_quiz_db, commands=["test_user_quiz_db"], state="*")
         dp.register_message_handler(self.test_func, commands=["test_func"], state="*")
         dp.register_message_handler(self.go_to_main_menu,
-                                    Text(equals="Отмена", ignore_case=True),
+                                    Text(equals=languages["to_all"]["cancel"], ignore_case=True),
+                                    state="*")
+        dp.register_message_handler(self.change_user_lang,
+                                    Text(equals=languages["to_all"]["change_lang"], ignore_case=True),
                                     state="*")
         dp.register_message_handler(self.about_us,
                                     Text(equals="О проекте", ignore_case=True),

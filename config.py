@@ -11,7 +11,7 @@ password = "guideBAR123!"
 
 db_version = "1.0"
 
-BASE_IMAGE_ID = ""
+BASE_IMAGE_ID = "AgACAgIAAxkBAAILY2XcHhaSd3Q0943o8bXKCHKwwE1NAAJF0zEbgIbgStyAcKz-ydagAQADAgADeQADNAQ"
 
 # ["Начать викторину", "Посмотреть статистику", "Виртуальный гид", "Узнать про HSE Travel"]
 class FSMWorkProgram(StatesGroup):
