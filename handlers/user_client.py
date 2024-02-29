@@ -62,10 +62,10 @@ class UserClient:
         back_msg = self.data_client.get_user_quiz_data()
         await msg.reply(back_msg)
 
-    async def test_func(self, msg: types.Message):
-        back_msg = "testing"
-        await msg.answer(back_msg,
-                         reply_markup=create_keyboards(list(), yes_no_btn=True))
+    # async def test_func(self, msg: types.Message):
+    #     back_msg = "testing"
+    #     await msg.answer(back_msg,
+    #                      reply_markup=create_keyboards(list(), yes_no_btn=True))
 
     async def test_audio(self, msg: types.Message):
         await msg.answer(msg.audio.file_id)

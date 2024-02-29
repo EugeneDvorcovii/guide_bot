@@ -31,7 +31,8 @@ class QuizClient:
     async def user_quiz_menu(self, msg: types.Message):
         user_lang = self.data_client.get_user_lang(user_id=str(msg.from_user.id))
         await msg.answer(languages[user_lang]["user_quiz_menu"],
-                         reply_markup=create_keyboards(languages[user_lang]["quiz_menu_btn"], cancel_btn=True))
+                         reply_markup=create_keyboards(languages[user_lang]["quiz_menu_btn"], cancel_btn=True,
+                                                       user_lang=user_lang))
         await FSMWorkProgram.user_quiz_menu.set()
 
     async def get_statistic(self, msg: types.Message):
@@ -47,7 +48,8 @@ class QuizClient:
         if result[0]:
             btn = result[1]
             await msg.answer(languages[user_lang]["get_quiz_theme"],
-                             reply_markup=create_keyboards(btn, cancel_btn=True))
+                             reply_markup=create_keyboards(btn, cancel_btn=True,
+                                                           user_lang=user_lang))
             await FSMWorkProgram.get_quiz_theme.set()
         else:
             await msg.answer(languages[user_lang]["get_quiz_theme_not"])
@@ -60,7 +62,8 @@ class QuizClient:
             data["quiz_theme_title"] = msg.text
         btn = self.data_client.get_quiz_list(quiz_theme_id)[1]
         await msg.answer(languages[user_lang]["get_quiz"],
-                         reply_markup=create_keyboards(btn, cancel_btn=True))
+                         reply_markup=create_keyboards(btn, cancel_btn=True,
+                                                       user_lang=user_lang))
         await FSMWorkProgram.get_quiz.set()
 
     async def run_quiz(self, msg: types.Message, state: FSMContext):
@@ -82,11 +85,13 @@ class QuizClient:
                     data["ask_id"] = [quiz_ask["id"]]
                     data["user_id"] = self.data_client.get_user_id(msg.from_user.id)
                     await msg.answer_photo(image_id, ask,
-                                           reply_markup=create_keyboards(answers, cancel_btn=True))
+                                           reply_markup=create_keyboards(answers, cancel_btn=True,
+                                                                         user_lang=user_lang))
                     await FSMWorkProgram.run_quiz.set()
                 else:
                     await msg.answer(languages[user_lang]["run_quiz_all_ask"],
-                                     reply_markup=create_keyboards(list(), cancel_btn=True))
+                                     reply_markup=create_keyboards(list(), cancel_btn=True,
+                                                                   user_lang=user_lang))
             else:
                 await msg.answer(languages[user_lang]["run_quiz_already_finished"])
 
@@ -118,10 +123,12 @@ class QuizClient:
                 data["ask_id"].append(quiz_ask["id"])
                 # print(data["ask_id"])
                 await msg.answer_photo(image_id, ask,
-                                       reply_markup=create_keyboards(answers, cancel_btn=True))
+                                       reply_markup=create_keyboards(answers, cancel_btn=True,
+                                                                     user_lang=user_lang))
             else:
                 await msg.answer(languages[user_lang]["quiz_all_ask"],
-                                 reply_markup=create_keyboards(list(), cancel_btn=True))
+                                 reply_markup=create_keyboards(list(), cancel_btn=True,
+                                                               user_lang=user_lang))
 
     def run_handler(self) -> None:
         dp.register_message_handler(self.user_quiz_menu,
